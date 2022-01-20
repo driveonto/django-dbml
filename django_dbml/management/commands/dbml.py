@@ -101,8 +101,8 @@ class Command(BaseCommand):
 
     def handle(self, *app_labels, **kwargs):
         output_file = kwargs["file"]
-        fmt = kwargs["table-format"]
-        prefix = kwargs["table-prefix"]
+        fmt = kwargs["table_format"]
+        prefix = kwargs["table_prefix"]
 
         self.addLine(f'''
             Project {kwargs['db-name']} {{
