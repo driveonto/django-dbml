@@ -88,7 +88,7 @@ class Command(BaseCommand):
         self.output_lines.append(line)
 
     def outputDbml(self, output_file):
-        output_string = self.output_lines.join("\n")
+        output_string = "\n".join(self.output_lines)
         if output_file is None:
             print(output_string)
             print("\n")
