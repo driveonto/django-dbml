@@ -2,15 +2,35 @@ from django_dbml.utils import to_snake_case
 from django.apps import apps
 from django.core.management.base import BaseCommand, CommandError
 from django.db import models
+from .formatter import fmt_choices, format_table
 
 
 class Command(BaseCommand):
     help = "Generate a DBML file based on Django models"
+    output_lines = []
 
     def add_arguments(self, parser):
         parser.add_argument(
             'args', metavar='app_label[.ModelName]', nargs='*',
             help='Restricts dbml generation to the specified app_label or app_label.ModelName.',
+        )
+        parser.add_argument(
+            '--file', help="File to output the DBML to"
+        )
+        parser.add_argument(
+            '--table-format', help="Formatter to use for the table name", choices=fmt_choices, default="django"
+        )
+        parser.add_argument(
+            '--table-prefix', help="Prefix to add to table names", default=""
+        )
+        parser.add_argument(
+            '--db-name', help="Project Database Name", default="database"
+        )
+        parser.add_argument(
+            '--db-type', help="Project Database Type", default="PostgreSQL"
+        )
+        parser.add_argument(
+            '--db-note', help="Project Database Note", default=""
         )
 
     def get_field_notes(self, field):
@@ -63,7 +83,36 @@ class Command(BaseCommand):
 
         return app_tables
 
+
+    def addLine(self, line):
+        self.output_lines.append(line)
+
+    def outputDbml(self, output_file):
+        output_string = self.output_lines.join("\n")
+        if output_file is None:
+            print(output_string)
+            print("\n")
+        else:
+            with open(output_file, "w") as output:
+                output.write(output_string)
+                output.write("\n")
+            output.close()
+
+
     def handle(self, *app_labels, **kwargs):
+        output_file = kwargs["file"]
+        fmt = kwargs["table-format"]
+        prefix = kwargs["table-prefix"]
+
+        self.addLine(f'''
+            Project {kwargs['db-name']} {{
+                database_type: '{kwargs['db-type']}'
+                Note: \'\'\'
+                {kwargs['db-note']}
+                \'\'\'
+            }}
+            ''')
+
         all_fields = {}
         allowed_types = ["ForeignKey", "ManyToManyField"]
         for field_type in models.__all__:
@@ -81,7 +130,7 @@ class Command(BaseCommand):
         app_tables = self.get_app_tables(app_labels)
 
         for app_table in app_tables:
-            table_name = app_table.__name__
+            table_name = format_table(fmt, app_table.__name__, app_table.__module__)
             tables[table_name] = {"fields": {}, "relations": []}
 
             for field in app_table._meta.get_fields():
@@ -95,7 +144,7 @@ class Command(BaseCommand):
                     tables[table_name]["relations"].append(
                         {
                             "type": "one_to_one",
-                            "table_from": field.related_model.__name__,
+                            "table_from": format_table(fmt, field.related_model.__name__, field.related_model.__module__),
                             "table_from_field": field.target_field.name,
                             "table_to": table_name,
                             "table_to_field": field.name,
@@ -106,7 +155,7 @@ class Command(BaseCommand):
                     tables[table_name]["relations"].append(
                         {
                             "type": "one_to_many",
-                            "table_from": field.related_model.__name__,
+                            "table_from": format_table(fmt, field.related_model.__name__, field.related_model.__module__),
                             "table_from_field": field.target_field.name,
                             "table_to": table_name,
                             "table_to_field": field.name,
@@ -124,7 +173,7 @@ class Command(BaseCommand):
                                 "type": "one_to_many",
                                 "table_from": table_name_m2m,
                                 "table_from_field": field.m2m_column_name(),
-                                "table_to": field.model.__name__,
+                                "table_to": format_table(fmt, field.model.__name__, field.model.__module__),
                                 "table_to_field": field.m2m_target_field_name(),
                             }
                         )
@@ -133,7 +182,7 @@ class Command(BaseCommand):
                                 "type": "one_to_many",
                                 "table_from": table_name_m2m,
                                 "table_from_field": field.m2m_reverse_name(),
-                                "table_to": field.related_model.__name__,
+                                "table_to": format_table(fmt, field.related_model.__name__, field.related_model.__module__),
                                 "table_to_field": field.m2m_target_field_name(),
                             }
                         )
@@ -153,7 +202,7 @@ class Command(BaseCommand):
                     "type": all_fields.get(type(field).__name__),
                 }
 
-                if "help_text" in field_attributes:
+                if "help_text" in field_attributes and field.help_text:
                     help_text = field.help_text.replace('"', '\\"')
                     tables[table_name]["fields"][field.name]["note"] = help_text
 
@@ -170,20 +219,20 @@ class Command(BaseCommand):
                     tables[table_name]["note"] = app_table.__doc__
 
         for table_name, table in tables.items():
-            print("Table {} {{".format(table_name))
+            self.addLine("Table {} {{".format(table_name))
             for field_name, field in table["fields"].items():
-                print(
+                self.addLine(
                     "  {} {} {}".format(
                         field_name, field["type"], self.get_field_notes(field)
                     )
                 )
             if 'note' in table:
-                print("  Note: '''{}'''".format(table['note']))
-            print("}")
+                self.addLine("  Note: '''{}'''".format(table['note']))
+            self.addLine("}")
 
             for relation in table["relations"]:
                 if relation["type"] == "one_to_many":
-                    print(
+                    self.addLine(
                         "ref: {}.{} > {}.{}".format(
                             relation["table_to"],
                             relation["table_to_field"],
@@ -193,7 +242,7 @@ class Command(BaseCommand):
                     )
 
                 if relation["type"] == "one_to_one":
-                    print(
+                    self.addLine(
                         "ref: {}.{} - {}.{}".format(
                             relation["table_to"],
                             relation["table_to_field"],
@@ -201,4 +250,7 @@ class Command(BaseCommand):
                             relation["table_from_field"],
                         )
                     )
-            print("\n")
+        
+        self.outputDbml(output_file)
+
+
