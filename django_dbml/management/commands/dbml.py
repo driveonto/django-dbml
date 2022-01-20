@@ -105,10 +105,10 @@ class Command(BaseCommand):
         prefix = kwargs["table_prefix"]
 
         self.addLine(f'''
-            Project {kwargs['db-name']} {{
-                database_type: '{kwargs['db-type']}'
+            Project {kwargs['db_name']} {{
+                database_type: '{kwargs['db_type']}'
                 Note: \'\'\'
-                {kwargs['db-note']}
+                {kwargs['db_note']}
                 \'\'\'
             }}
             ''')
@@ -130,7 +130,7 @@ class Command(BaseCommand):
         app_tables = self.get_app_tables(app_labels)
 
         for app_table in app_tables:
-            table_name = format_table(fmt, app_table.__name__, app_table.__module__)
+            table_name = prefix + format_table(fmt, app_table.__name__, app_table.__module__)
             tables[table_name] = {"fields": {}, "relations": []}
 
             for field in app_table._meta.get_fields():
@@ -144,7 +144,7 @@ class Command(BaseCommand):
                     tables[table_name]["relations"].append(
                         {
                             "type": "one_to_one",
-                            "table_from": format_table(fmt, field.related_model.__name__, field.related_model.__module__),
+                            "table_from": prefix + format_table(fmt, field.related_model.__name__, field.related_model.__module__),
                             "table_from_field": field.target_field.name,
                             "table_to": table_name,
                             "table_to_field": field.name,
@@ -155,7 +155,7 @@ class Command(BaseCommand):
                     tables[table_name]["relations"].append(
                         {
                             "type": "one_to_many",
-                            "table_from": format_table(fmt, field.related_model.__name__, field.related_model.__module__),
+                            "table_from": prefix + format_table(fmt, field.related_model.__name__, field.related_model.__module__),
                             "table_from_field": field.target_field.name,
                             "table_to": table_name,
                             "table_to_field": field.name,
@@ -173,7 +173,7 @@ class Command(BaseCommand):
                                 "type": "one_to_many",
                                 "table_from": table_name_m2m,
                                 "table_from_field": field.m2m_column_name(),
-                                "table_to": format_table(fmt, field.model.__name__, field.model.__module__),
+                                "table_to": prefix + format_table(fmt, field.model.__name__, field.model.__module__),
                                 "table_to_field": field.m2m_target_field_name(),
                             }
                         )
@@ -182,7 +182,7 @@ class Command(BaseCommand):
                                 "type": "one_to_many",
                                 "table_from": table_name_m2m,
                                 "table_from_field": field.m2m_reverse_name(),
-                                "table_to": format_table(fmt, field.related_model.__name__, field.related_model.__module__),
+                                "table_to": prefix + format_table(fmt, field.related_model.__name__, field.related_model.__module__),
                                 "table_to_field": field.m2m_target_field_name(),
                             }
                         )
