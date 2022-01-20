@@ -104,14 +104,12 @@ class Command(BaseCommand):
         fmt = kwargs["table_format"]
         prefix = kwargs["table_prefix"]
 
-        self.addLine(f'''
-            Project {kwargs['db_name']} {{
-                database_type: '{kwargs['db_type']}'
-                Note: \'\'\'
-                {kwargs['db_note']}
-                \'\'\'
-            }}
-            ''')
+        self.addLine(f"Project {kwargs['db_name']} {{")
+        self.addLine(f"    database_type: '{kwargs['db_type']}'")
+        self.addLine(f"    Note: \'\'\'")
+        self.addLine(f"    {kwargs['db_note']}")
+        self.addLine(f"    \'\'\'")
+        self.addLine(f"}}")
 
         all_fields = {}
         allowed_types = ["ForeignKey", "ManyToManyField"]
@@ -219,6 +217,7 @@ class Command(BaseCommand):
                     tables[table_name]["note"] = app_table.__doc__
 
         for table_name, table in tables.items():
+            self.addLine("\n")
             self.addLine("Table {} {{".format(table_name))
             for field_name, field in table["fields"].items():
                 self.addLine(
