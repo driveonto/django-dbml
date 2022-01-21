@@ -106,7 +106,7 @@ class Command(BaseCommand):
         output_file = kwargs["file"]
         fmt = kwargs["table_format"]
         prefix = kwargs["table_prefix"]
-        filter = kwargs["table_filter"].split(',')
+        table_filter = list(filter(None, kwargs["table_filter"].split(',')))
 
         self.addLine(f"Project {kwargs['db_name']} {{")
         self.addLine(f"    database_type: '{kwargs['db_type']}'")
@@ -221,8 +221,8 @@ class Command(BaseCommand):
                     tables[table_name]["note"] = app_table.__doc__
 
         for table_name, table in tables.items():
-            if any(y in table_name for y in filter):
-                print('SKIPPING: ', table_name, filter)
+            if any(y in table_name for y in table_filter):
+                print('SKIPPING: ', table_name, table_filter)
                 continue
 
             self.addLine("\n")
