@@ -222,7 +222,6 @@ class Command(BaseCommand):
 
         for table_name, table in tables.items():
             if any(y in table_name for y in table_filter):
-                print('SKIPPING: ', table_name, table_filter)
                 continue
 
             self.addLine("\n")
