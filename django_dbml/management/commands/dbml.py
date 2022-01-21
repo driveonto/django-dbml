@@ -237,6 +237,9 @@ class Command(BaseCommand):
             self.addLine("}")
 
             for relation in table["relations"]:
+                if any(y in relation["table_to"] for y in table_filter) or any(y in relation["table_from"] for y in table_filter) :
+                    continue
+
                 if relation["type"] == "one_to_many":
                     self.addLine(
                         "ref: {}.{} > {}.{}".format(
