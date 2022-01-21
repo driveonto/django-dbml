@@ -32,6 +32,9 @@ class Command(BaseCommand):
         parser.add_argument(
             '--db-note', help="Project Database Note", default=""
         )
+        parser.add_argument(
+            '--table-filter', help="Comma seperated list of table patterns to omit", default=""
+        )
 
     def get_field_notes(self, field):
         if len(field.keys()) == 1:
@@ -103,6 +106,7 @@ class Command(BaseCommand):
         output_file = kwargs["file"]
         fmt = kwargs["table_format"]
         prefix = kwargs["table_prefix"]
+        filter = kwargs["table_filter"].split(',')
 
         self.addLine(f"Project {kwargs['db_name']} {{")
         self.addLine(f"    database_type: '{kwargs['db_type']}'")
@@ -161,7 +165,7 @@ class Command(BaseCommand):
                     )
 
                 elif isinstance(field, models.fields.related.ManyToManyField):
-                    table_name_m2m = field.m2m_db_table()
+                    table_name_m2m = prefix + field.m2m_db_table()
                     # only define m2m table and relations on first encounter
                     if table_name_m2m not in tables.keys():
                         tables[table_name_m2m] = {"fields": {}, "relations": []}
@@ -217,6 +221,9 @@ class Command(BaseCommand):
                     tables[table_name]["note"] = app_table.__doc__
 
         for table_name, table in tables.items():
+            if any(y in table_name for y in filter):
+                continue
+
             self.addLine("\n")
             self.addLine("Table {} {{".format(table_name))
             for field_name, field in table["fields"].items():
