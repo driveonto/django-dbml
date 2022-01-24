@@ -222,8 +222,7 @@ class Command(BaseCommand):
                     tables[table_name]["note"] = app_table.__doc__
 
         # sorting the tables alphabeitcally
-        o_tables = OrderedDict(sorted(tables))
-        for table_name, table in o_tables.items():
+        for table_name, table in tables.items():
             if any(y in table_name for y in table_filter):
                 continue
 
