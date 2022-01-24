@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from django_dbml.utils import to_snake_case
 from django.apps import apps
 from django.core.management.base import BaseCommand, CommandError
@@ -220,7 +221,9 @@ class Command(BaseCommand):
                 if app_table.__doc__:
                     tables[table_name]["note"] = app_table.__doc__
 
-        for table_name, table in tables.items():
+        # sorting the tables alphabeitcally
+        o_tables = OrderedDict(sorted(tables))
+        for table_name, table in o_tables.items():
             if any(y in table_name for y in table_filter):
                 continue
 
